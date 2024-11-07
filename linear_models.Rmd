@@ -88,3 +88,145 @@ fit |>
     
 ```
 
+## Some diagnostics 
+
+Most diagnostics use residuals . 
+
+```{r}
+modelr::add_residuals(nyc_airbnb, fit) |>
+  ggplot(aes(x=resid)) + 
+  geom_histogram()
+```
+
+backtrack to some EDA
+
+```{r}
+nyc_airbnb |> 
+  modelr::add_residuals(fit) |> 
+  ggplot(aes(x = stars, y = resid)) + geom_point() +
+  stat_smooth(method = "lm")
+```
+
+
+```{r}
+nyc_airbnb |> 
+  modelr::add_residuals(fit) |> 
+  modelr::add_predictions(fit) |>
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point()
+```
+
+## Hypothesis testing
+
+```{r}
+fit |> 
+  broom::tidy()
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+
+```
+
+look at both
+```{r}
+fit_null |>
+  broom::tidy()
+
+fit_alt |> 
+  broom::tidy()
+
+anova(fit_null, fit_alt) |> 
+  broom::tidy()
+```
+
+## Do effects differ across boroughs 
+
+first use a lot of interactions 
+```{r}
+nyc_airbnb |> 
+  lm(price ~ stars * borough + room_type * borough, data = _) |>
+  broom::tidy()
+```
+
+```{r}
+nyc_airbnb |> 
+  filter(borough == "Manhattan") |> 
+  lm(price ~ stars + room_type, data = _) |>
+  broom::tidy()
+```
+
+```{r}
+nyc_airbnb |> 
+  filter(borough == "Brooklyn") |> 
+  lm(price ~ stars + room_type, data = _) |>
+  broom::tidy()
+```
+
+```{r}
+nyc_airbnb |> 
+  nest(data = -borough) |>
+mutate(
+  model = map(data, \(x) lm(price ~ stars + room_type, data = x)),
+  results = map(model, broom::tidy)
+) |> 
+  select(borough, results) |> 
+  unnest(results) |> 
+  select(borough, term, estimate) |> 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate
+  )
+```
+
+what about room type across manhattan 
+
+```{r}
+nyc_airbnb |> 
+  filter(borough == "Manhattan", 
+         neighborhood == "Chinatown") |>
+  lm(price ~ stars + room_type, data =_) |>
+  broom::tidy()
+
+nyc_airbnb |> 
+  filter(borough == "Manhattan", 
+         neighborhood == "Chelsea") |>
+  lm(price ~ stars + room_type, data =_) |>
+  broom::tidy()
+```
+  
+  
+Lets do this for all neighborhoods!
+
+```{r}
+nyc_airbnb |> 
+  filter(borough == "Manhattan") |> 
+  nest(data = -(borough:neighborhood)) |>
+  mutate(
+    model = map(data, \(x) lm(price ~ stars + room_type, data = x)),
+    results = map(model, broom::tidy)
+  )
+```
+
+```{r}
+manhattan_airbnb =
+  nyc_airbnb |> 
+  filter(borough == "Manhattan")
+
+manhattan_nest_lm_res =
+  manhattan_airbnb |> 
+  nest(data = -neighborhood) |> 
+  mutate(
+    models = map(data, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(models, broom::tidy)) |> 
+  select(-data, -models) |> 
+  unnest(results)
+```
+
+
+```{r}
+manhattan_nest_lm_res |> 
+  filter(str_detect(term, "room_type")) |> 
+  ggplot(aes(x = neighborhood, y = estimate)) + 
+  geom_point() + 
+  facet_wrap(~term) + 
+  theme(axis.text.x = element_text(angle = 80, hjust = 1))
+```
