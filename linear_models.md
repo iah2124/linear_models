@@ -138,7 +138,7 @@ nyc_airbnb =
 fit = lm(price ~ stars + borough, data = nyc_airbnb)
 ```
 
-Try a bit more complex
+Try a bit more complex - with freq
 
 ``` r
 fit = 
