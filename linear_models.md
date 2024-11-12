@@ -443,4 +443,5 @@ manhattan_nest_lm_res |>
   theme(axis.text.x = element_text(angle = 80, hjust = 1))
 ```
 
-![](linear_models_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](linear_models_files/figure-gfm/unnamed-chunk-19-1.png)<!-- --> Look
+at the effect

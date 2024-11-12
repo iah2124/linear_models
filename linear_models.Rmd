@@ -230,3 +230,4 @@ manhattan_nest_lm_res |>
   facet_wrap(~term) + 
   theme(axis.text.x = element_text(angle = 80, hjust = 1))
 ```
+Look at the effect 
